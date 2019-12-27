@@ -68,6 +68,7 @@ class PivotalTransitioner
     emoji = story_type == BUG ? ':hammer_and_wrench:' : ':evergreen_tree:'
 
     <<~MSG
+      -----------------------
       #{emoji} deployed to #{public_app_name} @ #{Time.now.strftime('%-d-%-m-%y %-k:%M %Z')}
       \n
       *[#{story_type}]* #{story['name']}
