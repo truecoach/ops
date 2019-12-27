@@ -9,6 +9,9 @@
 # creates a release branch and opens the compare view in github
 #
 
+status = `git status --porcelain`
+raise 'Unclean git working state. Please stash or commit your changes first.' unless status == ''
+
 now = Time.now.strftime("%-m-%-d-%Y-%-l.%M%P")
 tz = Time.now.getlocal.zone
 branch_name = "release/#{now}-#{tz}"
