@@ -1,0 +1,107 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+#
+# Lints only the changed files, rather than the entire application's files.
+#
+# By default it first checks for uncommitted changes to lint. If there are none,
+# It lints all files changed in the current commit.
+#
+#    $ ./bin/lint
+#
+# Optionally, it can lint all changed file between the current branch and another
+# branch with the environment variable LINT_DIFF_BRANCH.
+#
+#    $ LINT_DIFF_BRANCH=develop ./bin/lint
+#
+
+require 'yaml'
+require 'set'
+
+class RubocopDiffLinter
+  def self.call; new.call; end
+  private_class_method :new
+
+  def call
+    if lintable_file_paths.any?
+      puts "linting #{description}"
+      puts `bundle exec rubocop #{lintable_file_paths.join(' ')} --color`
+    else
+      puts "no lintable files changed"
+    end
+  end
+
+  private
+
+  def lintable_file_paths
+    @_lintable_file_paths ||= begin
+      all_filepaths.reject do |fp|
+        excluded_paths.any? { |efp| File.fnmatch(efp, fp) } ||
+          included_paths.none? { |ifp| File.fnmatch(ifp, fp) }
+      end
+    end
+  end
+
+  def all_filepaths
+    @_all_filepaths ||= begin
+      case command
+      when :diff_branch; diff_branch_filepaths
+      when :diff_uncommitted;  diff_uncommitted_filepaths
+      when :diff_head; diff_head_filepaths
+      end
+    end
+  end
+
+  def excluded_paths
+    @_excluded_paths ||= config.dig("AllCops", "Exclude") || []
+  end
+
+  def included_paths
+    @_included_paths ||= config.dig("AllCops", "Include") || []
+  end
+
+  def config
+    @_config ||= YAML.load(File.open('.rubocop.yml'))
+  end
+
+  def command
+    @_command ||= begin
+      if !ENV['LINT_DIFF_BRANCH'].nil?
+        :diff_branch
+      elsif diff_uncommitted_filepaths.any?
+        :diff_uncommitted
+      else
+        :diff_head
+      end
+    end
+  end
+
+  def description
+    case command
+    when :diff_branch
+      "changes between current commit and #{ENV['LINT_DIFF_BRANCH']}"
+    when :diff_uncommitted
+      "uncommitted changes only"
+    when :diff_head
+      "changes on most recent commit"
+    end
+  end
+
+  def diff_uncommitted_filepaths
+    @_diff_uncommitted_filepaths ||= begin
+      staged = `git diff --name-only --cached`.split("\n")
+      unstaged = `git diff --name-only`.split("\n")
+      Set.new(staged + unstaged).to_a
+    end
+  end
+
+  def diff_head_filepaths
+    `git diff-tree --no-commit-id --name-only -r HEAD`.split("\n")
+  end
+
+  def diff_branch_filepaths
+    `git diff #{ENV['LINT_DIFF_BRANCH']} --name-only`.split("\n")
+  end
+end
+
+RubocopDiffLinter.call
