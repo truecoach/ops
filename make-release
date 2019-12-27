@@ -1,0 +1,41 @@
+#!/usr/bin/env ruby
+
+# frozen_string_literal: true
+
+#
+# creates a release branch and opens the compare view in github
+#
+
+now = Time.now.strftime("%-m-%-d-%Y-%-l.%M%P")
+tz = Time.now.getlocal.zone
+branch_name = "release/#{now}-#{tz}"
+
+puts `git checkout master`
+puts `git pull`
+puts `git checkout develop`
+puts `git pull`
+puts `git checkout -b #{branch_name}`
+puts `git merge master`
+
+cmd = "git push -u origin #{branch_name}"
+puts cmd
+puts `#{cmd}`
+
+title = URI.escape("[release] #{now} #{tz}")
+compare_url = "https://github.com/truecoach/fitbot-server/compare/master...#{branch_name}?title=#{title}"
+
+os = `uname -s`
+case os
+when /Linux/i
+  ex = 'xdg-open'
+  puts 'Linux!'
+when /Darwin/i
+  ex = 'open'
+  puts 'Mac!'
+else
+  raise "Unexpected operating system: #{os}"
+end
+
+cmd = "#{ex} #{compare_url}"
+puts cmd
+puts `#{cmd}`
