@@ -1,6 +1,9 @@
 #!/usr/bin/env ruby
-
 # frozen_string_literal: true
+#
+# To update this script, please update in github.com/truecoach/ops via
+# pull request, then copy-paste the updated version here.
+#
 
 #
 # creates a release branch and opens the compare view in github

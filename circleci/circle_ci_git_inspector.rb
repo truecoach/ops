@@ -1,3 +1,7 @@
+#
+# To update this script, please update in github.com/truecoach/ops/circleci via
+# pull request, then copy-paste the updated version here.
+#
 class CircleCiGitInspector
   DEVELOP_BRANCH = 'develop'
   MASTER_BRANCH = 'master'
