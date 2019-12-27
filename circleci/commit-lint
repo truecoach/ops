@@ -4,7 +4,10 @@
 # To update this script, please update in github.com/truecoach/ops/circleci via
 # pull request, then copy-paste the updated version here.
 #
-
+# # DESCRIPTION # #
+#
+# Lints commit titles to ensure valid structure.
+#
 require_relative './circle_ci_git_inspector'
 
 class CommitLinter

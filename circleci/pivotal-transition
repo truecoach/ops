@@ -4,7 +4,13 @@
 # To update this script, please update in github.com/truecoach/ops/circleci via
 # pull request, then copy-paste the updated version here.
 #
-
+# # DESCRIPTION # #
+#
+# Transitions Pivotal Tracker story states based on a git branch flow of
+#   feature      -> develop     -> master
+#   (started)    -> (delivered) -> (accepted)
+#   (in process) -> (merged)    -> (deployed)
+#
 require 'json'
 require 'slack-notifier'
 require_relative './circle_ci_git_inspector'

@@ -4,7 +4,7 @@
 # To update this script, please update in github.com/truecoach/ops via
 # pull request, then copy-paste the updated version here.
 #
-
+# # DESCRIPTION # #
 #
 # Lints only the changed files, rather than the entire application's files.
 #
