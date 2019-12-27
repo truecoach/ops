@@ -4,17 +4,24 @@
 # To update this script, please update in github.com/truecoach/ops via
 # pull request, then copy-paste the updated version here.
 #
-
+# # DESCRIPTION # #
 #
-# creates a release branch and opens the compare view in github
+# Creates a release branch and opens the compare view in github
 #
-
 status = `git status --porcelain`
 raise 'Unclean git working state. Please stash or commit your changes first.' unless status == ''
 
 now = Time.now.strftime("%-m-%-d-%Y-%-l.%M%P")
 tz = Time.now.getlocal.zone
 branch_name = "release/#{now}-#{tz}"
+
+if ENV['REPO_URL'].nil?
+  repo_name = `pwd`.chomp.split("/").last
+  repo_url = "https://github.com/truecoach/#{repo_name}"
+  puts "ENV['REPO_URL'] is not set. Falling back to #{repo_url}."
+else
+  repo_url = ENV['REPO_URL']
+end
 
 puts `git checkout master`
 puts `git pull`
@@ -28,7 +35,7 @@ puts cmd
 puts `#{cmd}`
 
 title = URI.escape("[release] #{now} #{tz}")
-compare_url = "https://github.com/truecoach/fitbot-server/compare/master...#{branch_name}?title=#{title}"
+compare_url = "#{repo_url}/compare/master...#{branch_name}?title=#{title}"
 
 os = `uname -s`
 case os
