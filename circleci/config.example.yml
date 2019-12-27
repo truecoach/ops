@@ -1,0 +1,36 @@
+version: 2
+jobs:
+  'Transition Stories':
+    docker:
+      - image: circleci/ruby:2.6.5
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - global-gem-cache
+      - run:
+          name: Install Slack Notifier
+          command: (gem list -i slack-notifier) || (gem install slack-notifier)
+      - run:
+          name: Transition associated Pivotal stories
+          command: ./.circleci/pivotal-transition
+      - save_cache:
+          key: global-gem-cache
+          paths:
+            - vendor/gems
+
+  'Lint Commits':
+    docker:
+      - image: circleci/ruby:2.6.5
+    steps:
+      - checkout
+      - run:
+          name: Commit Linting
+          command: ./.circleci/commit-lint
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - 'Lint Commits'
+      - 'Transition Stories'

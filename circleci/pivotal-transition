@@ -1,0 +1,139 @@
+#!/usr/bin/env ruby
+
+# frozen_string_literal: true
+
+require 'json'
+require 'slack-notifier'
+require_relative './circle_ci_git_inspector'
+
+class PivotalTransitioner
+  PIVOTAL_STATES = [
+    ACCEPTED = 'accepted',
+    DELIVERED = 'delivered',
+    FINISHED = 'finished',
+    STARTED = 'started',
+    REJECTED = 'rejected',
+    PLANNED = 'planned',
+    UNSTARTED = 'unstarted',
+    UNSCHEDULED = 'unscheduled',
+  ].freeze
+  PIVOTAL_STORY_TYPES = [
+    FEATURE = 'feature',
+    BUG = 'bug',
+    CHORE = 'chore'
+  ].freeze
+
+  def self.call
+    new.call
+  end
+
+  def call
+    pt_stories.each do |story|
+      transition(story)
+      report_changelog_item(story)
+    end
+  end
+
+  private
+
+  def report_changelog_item(story)
+    return unless report_changelog_item?(story)
+
+    slack_notifier.ping(format_story_as_slack_message(story))
+  end
+
+  def report_changelog_item?(story)
+    return false unless git.deployed?
+    return false unless [FEATURE, BUG].include?(story['story_type'])
+
+    true
+  end
+
+  def format_story_as_slack_message(story)
+    story_type = story['story_type']
+    public_app_name = ENV.fetch('PUBLIC_APP_NAME', 'truecoach-api')
+    labels = story['labels'].map { |l| l['name'] }.join(', ')
+    description = story['description'] || '-'
+    summary = description[0..200]
+    summary += '...' if description.length > summary.length
+    emoji = story_type == BUG ? ':hammer_and_wrench:' : ':evergreen_tree:'
+
+    <<~MSG
+      #{emoji} deployed to #{public_app_name} @ #{Time.now.strftime('%-d-%-m-%y %-k:%M %Z')}
+      \n
+      *[#{story_type}]* #{story['name']}
+      *description:* #{summary}
+      *labels:* #{labels}
+      \n
+      #{story['url']}
+    MSG
+  end
+
+  def slack_notifier
+    @_slack_notifier ||= Slack::Notifier.new(ENV["SLACK_CHANGELOG_CHANNEL_URL"])
+  end
+
+  def transition(story)
+    form = {
+      current_state: current_state
+    }.to_json
+
+    response =`
+      curl -X PUT \
+        -H "X-TrackerToken: $PIVOTAL_TRACKER_API_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '#{form}' \
+        #{pt_url(story["id"])}
+    `
+
+    puts ""
+    puts "Transitioned story #{story["id"]} to #{current_state}"
+    puts ""
+    puts response
+    puts ""
+  end
+
+  def current_state
+    return ACCEPTED if git.deployed?
+    return DELIVERED if git.merged?
+    return FINISHED if git.pr_exists?
+
+    STARTED
+  end
+
+  def pt_stories
+    @_pt_stories ||= begin
+      pt_story_ids.map do |id|
+        story = `
+          curl -X GET \
+            -H "X-TrackerToken: $PIVOTAL_TRACKER_API_TOKEN" \
+            #{pt_url(id)}
+        `
+        story = JSON.parse(story)
+
+        story["kind"] == "error" ? nil : story
+      end.compact
+    end
+  end
+
+  def pt_url(id)
+    "https://www.pivotaltracker.com/services/v5/stories/#{id}"
+  end
+
+  def pt_story_ids
+    @_pt_story_ids ||= begin
+      # expected format in commit message:
+      # [ ... #1234 ... ]
+      git.commit_messages
+        .scan(/\[(.*?#\d+.*?)\]/)
+        .flatten
+        .map { |t| t[/#\d+/].gsub(/#/, '') }
+    end
+  end
+
+  def git
+    @_git ||= CircleCiGitInspector.new
+  end
+end
+
+PivotalTransitioner.call

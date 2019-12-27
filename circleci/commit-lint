@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+
+# frozen_string_literal: true
+
+require_relative './circle_ci_git_inspector'
+
+class CommitLinter
+  class InvalidCommitTitle < StandardError; end
+
+  VALID_TAGS = [
+    'docs', 'chore', 'bugfix', 'feature', 'refactor'
+  ].freeze
+  BANNED_WORDS = [
+    'fixup!', 'squash', 'wip'
+  ].freeze
+
+  def self.call
+    new.call
+  end
+
+  def call
+    return unless lint?
+
+    git.titles.each do |title|
+      validate_title(title)
+    end
+
+    return if error_messages.none?
+
+    raise InvalidCommitTitle, "Commit linting failed.\n#{error_messages.join("\n")}"
+  end
+
+  def error_messages
+    @_error_messages ||= []
+  end
+
+  private
+
+  def lint?
+    !git.deployed? && !git.merged?
+  end
+
+  def validate_title(title)
+    validate_banned_words(title)
+    validate_properly_tagged(title)
+  end
+
+  def validate_banned_words(title)
+    return if BANNED_WORDS.none? { |word| title.chomp.match(/(?:^|\W)#{word}(?:$|\W)/i) }
+
+    error_messages << "Commit title '#{title}' cannot include any of these word: '#{BANNED_WORDS.join("', '")}'"
+  end
+
+  def validate_properly_tagged(title)
+    return if VALID_TAGS.any? { |tag| title.chomp.match(/^\[#{tag}\]/) }
+    return if title.chomp.match(/^revert/i)
+
+    tags = VALID_TAGS.map { |t| "[#{t}]" }.join("', ")
+
+    error_messages << "Commit title '#{title}' must start with one of the following tags: '#{tags}'"
+  end
+
+  def git
+    @_git ||= CircleCiGitInspector.new
+  end
+end
+
+CommitLinter.call
