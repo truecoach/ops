@@ -17,7 +17,7 @@ class CommitLinter
     'docs', 'chore', 'bugfix', 'feature', 'refactor'
   ].freeze
   BANNED_WORDS = [
-    'fixup!', 'squash', 'wip'
+    'fixup', 'fixup!', 'squash', 'squash!', 'wip'
   ].freeze
 
   def self.call
