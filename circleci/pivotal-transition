@@ -39,49 +39,10 @@ class PivotalTransitioner
   def call
     pt_stories.each do |story|
       transition(story)
-      report_changelog_item(story)
     end
   end
 
   private
-
-  def report_changelog_item(story)
-    return unless report_changelog_item?(story)
-
-    slack_notifier.ping(format_story_as_slack_message(story))
-  end
-
-  def report_changelog_item?(story)
-    return false unless git.deployed?
-    return false unless [FEATURE, BUG].include?(story['story_type'])
-
-    true
-  end
-
-  def format_story_as_slack_message(story)
-    story_type = story['story_type']
-    public_app_name = ENV.fetch('PUBLIC_APP_NAME', 'truecoach-api')
-    labels = story['labels'].map { |l| l['name'] }.join(', ')
-    description = story['description'] || '-'
-    summary = description[0..200]
-    summary += '...' if description.length > summary.length
-    emoji = story_type == BUG ? ':hammer_and_wrench:' : ':evergreen_tree:'
-
-    <<~MSG
-      -----------------------
-      #{emoji} deployed to #{public_app_name} @ #{Time.now.strftime('%-d-%-m-%y %-k:%M %Z')}
-      \n
-      *[#{story_type}]* #{story['name']}
-      *description:* #{summary}
-      *labels:* #{labels}
-      \n
-      #{story['url']}
-    MSG
-  end
-
-  def slack_notifier
-    @_slack_notifier ||= Slack::Notifier.new(ENV["SLACK_CHANGELOG_CHANNEL_URL"])
-  end
 
   def transition(story)
     form = {
