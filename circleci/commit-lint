@@ -7,7 +7,7 @@
 # # DESCRIPTION # #
 #
 # Lints commit titles to ensure valid structure.
-#
+# deleteme
 require_relative './circle_ci_git_inspector'
 
 class CommitLinter
