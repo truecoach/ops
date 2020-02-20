@@ -16,7 +16,7 @@ tz = Time.now.getlocal.zone
 branch_name = "release/#{now}-#{tz}"
 
 if ENV['REPO_URL'].nil?
-  repo_name = `basename -- $( git remote get-url origin )`
+  repo_name = `pwd`.chomp.split("/").last
   repo_url = "https://github.com/truecoach/#{repo_name}"
   puts "ENV['REPO_URL'] is not set. Falling back to #{repo_url}."
 else
