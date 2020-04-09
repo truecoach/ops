@@ -62,6 +62,12 @@ class PivotalTransitioner
     puts ""
     puts response
     puts ""
+  rescue StandardError => e
+    puts ""
+    puts "Failed to transition story #{story.inspect}."
+    puts "Commit messages: #{git.commit_messages.inspect}."
+    puts "#{e.class}: #{e.message}"
+    puts ""
   end
 
   def current_state
