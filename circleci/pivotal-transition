@@ -108,6 +108,7 @@ class PivotalTransitioner
     rescue StandardError => e
       puts ""
       puts "Error, no stories transitioned. Failed to parse git messages:"
+      puts "#{e.class}: #{e.message}"
       puts ""
       puts git.commit_messages
       puts ""
