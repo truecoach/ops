@@ -105,6 +105,13 @@ class PivotalTransitioner
         .scan(/\[(.*?#\d+.*?)\]/)
         .flatten
         .map { |t| t[/#\d+/].gsub(/#/, '') }
+    rescue StandardError => e
+      puts ""
+      puts "Error, no stories transitioned. Failed to parse git messages:"
+      puts ""
+      puts git.commit_messages
+      puts ""
+      []
     end
   end
 
