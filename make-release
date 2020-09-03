@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
+require 'uri'
+
 #
 # To update this script, please update in github.com/truecoach/ops via
 # pull request, then copy-paste the updated version here.
